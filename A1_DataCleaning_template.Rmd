@@ -175,7 +175,6 @@ Some things to pay attention to:
 * make sure to understand whether (and if so why) there are NAs in the dataset (e.g. some measures were not taken at all visits, some recordings were lost or permission to use was withdrawn)
 
 ```{r}
-?merge
 df1 <- merge(sub_demo, sub_LU) #merge the first 2
 df <- merge(df1, sub_token) #add the last
 ```
@@ -245,6 +244,16 @@ List all kids who:
 3. have not completed all trials. Tip: Use pipes to solve this
 
 ```{r}
+#1
+filter1 <- df_merged %>% group_by(SUBJ) %>%
+  summarize(mean(CHI_MLU)) %>%  filter(`mean(CHI_MLU)` > 2.7)
+
+
+#2
+filter2 <- filter(df_merged, VISIT == 1, CHI_MLU < 1.5)
+
+
+#3
 
 
 ```
@@ -256,8 +265,16 @@ USING ARRANGE
 2. Sort kids to find the kid who produced the least amount of words on the 1st visit.
 
 ```{r}
+#1
+?arrange
+arrange1 <- df_merged %>% group_by(SUBJ) %>% filter(VISIT == 6) %>% arrange(desc(tokens_CHI)) #in new df with only visit 6 
+#OR
+arrange(df_merged, desc(VISIT), desc(tokens_CHI)) #arrange the existing dataframe
 
 
+#
+arrange2 <- df_merged %>%  group_by(SUBJ) %>%  filter(VISIT == 1) %>%  arrange(tokens_CHI)
+arrange(df_merged, VISIT, tokens_CHI)
 ```
 
 USING SELECT
@@ -266,16 +283,31 @@ USING SELECT
 2. What happens if you include the name of a variable multiple times in a select() call?
 
 ```{r}
+#1
+select1 <- df_merged %>% filter(Diagnosis == "ASD") %>% select(SUBJ, VISIT, CHI_MLU, MOT_MLU, tokens_CHI, tokens_MOT)
+
+#2
+select2 <- df_merged %>% filter(Diagnosis == "ASD") %>% select(SUBJ, SUBJ, VISIT, CHI_MLU, MOT_MLU, tokens_CHI, tokens_MOT)
+#Nothing happens if you include the name of a variable twice in select()
+
 
 ```
 
 
 USING MUTATE, SUMMARISE and PIPES
 1. Add a column to the data set that represents the mean number of words spoken during all visits.
-2. Use the summarise function and pipes to add an column in the data set containing the mean amount of words produced by each trial across all visits. HINT: group by Child.ID 
+2. Use the summarise function and pipes to add a column in the data set containing the mean amount of words produced by each trial across all visits. HINT: group by Child.ID 
 3. The solution to task above enables us to assess the average amount of words produced by each child. Why don't we just use these average values to describe the language production of the children? What is the advantage of keeping all the data?
 
 ```{r}
+#1
+mutate(df_merged, meanAllVisit = mean(tokens_CHI))
 
+
+#2
+mutate2 <- df_merged %>% group_by(SUBJ) %>% mutate(meanAllVisit = mean(tokens_CHI))
+
+#3
+#we are interested in the development of language (number of words) and not just how many words they know on average. If we only keep the average it is impossible to to say anything about different development in ASD- and TD children. 
 
 ```
