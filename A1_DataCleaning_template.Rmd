@@ -70,6 +70,9 @@ Load the three data sets, after downloading them from dropbox and saving them in
 * Word data: https://www.dropbox.com/s/8ng1civpl2aux58/token_train.csv?dl=0
 
 ```{r}
+demo <- read.csv("demo_train.csv")
+LU <- read.csv("LU_train.csv")
+token <- read.csv("token_train.csv")
 
 ```
 
@@ -83,14 +86,15 @@ Before being able to combine the data sets we need to make sure the relevant var
 
 So:
 
-2a. Identify which variable names do not match (that is are spelled differently) and find a way to transform variable names.
+2a. Identify which variable names do not match (that is, are spelled differently) and find a way to transform variable names.
 Pay particular attention to the variables indicating participant and visit.
 
 Tip: look through the chapter on data transformation in R for data science (http://r4ds.had.co.nz). Alternatively you can look into the package dplyr (part of tidyverse), or google "how to rename variables in R". Or check the janitor R package. There are always multiple ways of solving any problem and no absolute best method.
 
 
 ```{r}
-
+names(demo)[1] <- "SUBJ" #take the 1st column and call it "SUBJ"
+names(demo)[2] <- "VISIT"
 ```
 
 2b. Find a way to homogeneize the way "visit" is reported (visit1 vs. 1).
@@ -99,7 +103,8 @@ Tip: The stringr package is what you need. str_extract () will allow you to extr
 
 
 ```{r}
-
+LU$VISIT <- str_extract(LU$VISIT, "\\d") #in the LU-dataframe, under the column VISIT, only save the numbers
+token$VISIT <- str_extract(token$VISIT, "\\d")
 
 ```
 
@@ -111,7 +116,9 @@ Tip: You can either have one line of code for each child name that is to be chan
 
 
 ```{r}
-
+LU$SUBJ <- str_replace_all(LU$SUBJ, "[.]", "")  #in the column in g the dataframe, replace all "." with nothing
+token$SUBJ <- str_replace_all(token$SUBJ, "[.]", "")
+demo$SUBJ <- str_replace_all(demo$SUBJ, "[.]", "")
 ```
 
 2d. Now that the nitty gritty details of the different data sets are fixed, we want to make a subset of each data set only containig the variables that we wish to use in the final data set.
@@ -147,7 +154,15 @@ Most variables should make sense, here the less intuitive ones.
 Feel free to rename the variables into something you can remember (i.e. nonVerbalIQ, verbalIQ)
 
 ```{r}
+sub_demo <- select(demo, SUBJ, VISIT, Diagnosis, Ethnicity, Gender, Age, ADOS, MullenRaw, ExpressiveLangRaw, Socialization)
 
+sub_LU <- select(LU, SUBJ, VISIT, MOT_MLU, CHI_MLU)
+
+sub_token <- select(token, SUBJ, VISIT, types_MOT, types_CHI, tokens_MOT, tokens_CHI)
+
+#rename columns 
+names(sub_demo)[8] <- "nonVerbalIQ"
+names(sub_demo)[9] <- "verbalIQ"
 ```
 
 2e. Finally we are ready to merge all the data sets into just one. 
@@ -157,8 +172,9 @@ Some things to pay attention to:
 * make sure to understand whether (and if so why) there are NAs in the dataset (e.g. some measures were not taken at all visits, some recordings were lost or permission to use was withdrawn)
 
 ```{r}
-
-
+?merge
+df1 <- merge(sub_demo, sub_LU) #merge the first 2
+df <- merge(df1, sub_token) #add the last
 ```
 
 
@@ -173,6 +189,13 @@ A possible way to do so:
 
 
 ```{r}
+visit1 <- filter(df, VISIT == 1) #use filter to only find the variables from visit 1
+
+visit1_relevant <- select(visit1, SUBJ, ADOS, nonVerbalIQ, verbalIQ, Socialization) #choose only the relevant variables
+
+names(visit1_relevant) <- c("SUBJ", "ADOS1", "nonVerbalIQ1", "verbalIQ1", "Socialization1") #rename the columns
+
+df_merged <- merge(df, visit1_relevant) #merge with the dataframe with only the relevant variables
 
 ```
 
@@ -184,7 +207,21 @@ Now we want to
 * Save the data set using into a csv file. Hint: look into write.csv()
 
 ```{r}
+#rename participants
+df_merged$SUBJ <- as.factor(df_merged$SUBJ) #make SUBJ a factor
+levels(df_merged$SUBJ) #check the factors
+levels(df_merged$SUBJ) <- c(1:61) # call the factors numbers from 1 to 61 instead of names
 
+
+#rename Gender
+df_merged$Gender <- as.factor(df_merged$Gender)
+levels(df_merged$Gender)
+levels(df_merged$Gender) <- c("M", "F") #call first level "M" and second level "F"
+
+#rename Diagnosis
+df_merged$Diagnosis <- as.factor(df_merged$Diagnosis)
+levels(df_merged$Diagnosis)
+levels(df_merged$Diagnosis) <- c("ASD", "TD")
 ```
 
 
